@@ -19,10 +19,10 @@ class Request extends Kohana_Request {
 	 * @return  Request
 	 * @uses    Request::detect_uri
 	 */
-	public static function instance( & $uri = TRUE)
+	public static function factory($uri = TRUE, HTTP_Cache $cache = NULL, $injected_routes = array())
 	{
 		// All supported languages
-		$langs = (array) Kohana::config('lang');
+		$langs = (array) Kohana::$config->load('lang');
 
 		if ($uri === TRUE)
 		{
@@ -39,37 +39,51 @@ class Request extends Kohana_Request {
 			// Find the best default language
 			$lang = Lang::find_default();
 
-			// Use the default server protocol
-			$protocol = (isset($_SERVER['SERVER_PROTOCOL'])) ? $_SERVER['SERVER_PROTOCOL'] : 'HTTP/1.1';
-
-			// Redirect to the same URI, but with language prepended
-			header($protocol.' 302 Found');
-			header('Location: '.URL::base(TRUE, TRUE).$lang.'/'.$uri);
-
-			// Stop execution
-			exit;
+			// Prepend default language if needed
+			if (Lang::$default_prepended)
+			{
+				// Redirect to the same URI, but with language prepended
+				Request::lang_redirect($lang, '/'.$uri);
+			}
+			else
+			{
+				// Set the default language as the match
+				$matches[0] = Lang::$default;
+			}
+		}
+		else
+		{
+			// If default is not prepended and found language is the default, then remove it from URI
+			if ( ! Lang::$default_prepended AND strtolower($matches[0]) === Lang::$default)
+			{
+				// Redirect to the same URI, but with default language removed
+				Request::lang_redirect(NULL, ltrim($uri, Lang::$default.'/'));
+			}
 		}
 
 		// Language found in the URI
 		Request::$lang = strtolower($matches[0]);
-
+		
 		// Store target language in I18n
 		I18n::$lang = $langs[Request::$lang]['i18n_code'];
-
+		
 		// Set locale
 		setlocale(LC_ALL, $langs[Request::$lang]['locale']);
 
-		// Update language cookie if needed
 		if (Cookie::get(Lang::$cookie) !== Request::$lang)
 		{
+			// Update language cookie if needed
 			Cookie::set(Lang::$cookie, Request::$lang);
 		}
-
-		// Remove language from URI
-		$uri = (string) substr($uri, strlen(Request::$lang));
-
+			
+		if (Lang::$default_prepended OR Request::$lang !== Lang::$default)
+		{
+			// Remove language from URI if default is prepended or the language is not the default
+			$uri = (string) substr($uri, strlen(Request::$lang));
+		}
+			
 		// Continue normal request processing with the URI without language
-		return parent::instance($uri);
+		return parent::factory($uri, $cache, $injected_routes);
 	}
-
+		
 }
