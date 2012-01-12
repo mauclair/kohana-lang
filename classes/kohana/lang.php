@@ -11,6 +11,11 @@ class Kohana_Lang {
 	 * @var  string  name of the cookie that contains language
 	 */
 	public static $cookie = 'lang';
+	
+	/**
+     	* @var boolean this will force the default language to be prepended
+     	*/
+    	public static $default_prepended = TRUE;
 
 	/**
 	 * Looks for the best default language available and returns it.
