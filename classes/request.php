@@ -85,5 +85,25 @@ class Request extends Kohana_Request {
 		// Continue normal request processing with the URI without language
 		return parent::factory($uri, $cache, $injected_routes);
 	}
+	
+	/**
+	* Redirects with or without language
+	*
+	* @param string $lang
+	* @param string $uri
+	* @return void
+	*/
+	public static function lang_redirect($lang, $uri)
+	{
+		// Use the default server protocol
+		$protocol = (isset($_SERVER['SERVER_PROTOCOL'])) ? $_SERVER['SERVER_PROTOCOL'] : 'HTTP/1.1';
 		
-}
+		// Set headers
+		header($protocol.' 302 Found');
+		header('Location: '.URL::base(TRUE, TRUE).$lang.$uri);
+		
+		// Stop execution
+		exit;
+	}
+
+} // End Request
